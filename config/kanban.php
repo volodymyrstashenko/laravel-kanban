@@ -7,19 +7,18 @@ return [
      |--------------------------------------------------------------------------
      | The Eloquent model used for board members, card creators/assignees,
      | comment authors and activity actors. Must expose `id`, `name` and
-     | (optionally) `email`.
+     | (optionally) `email`. Set this to your app's user model after publishing.
      */
-    'user_model' => \App\Models\User::class,
+    'user_model' => 'App\Models\User',
 
     /*
      |--------------------------------------------------------------------------
      | Routing
      |--------------------------------------------------------------------------
-     | `prefix`     — URL prefix for every Kanban route (route names are always
-     |                `kanban.*`, unaffected by this).
-     | `middleware` — middleware group the routes are wrapped in. Needs `web`
-     |                (session/CSRF/Inertia) and whatever auth stack the host app
-     |                uses.
+     | `route_prefix`     — URL prefix for every Kanban route (route names are
+     |                      always `kanban.*`, unaffected by this).
+     | `route_middleware` — middleware group the routes are wrapped in. Needs
+     |                      `web` (session/CSRF/Inertia) plus the host's auth stack.
      */
     'route_prefix' => 'kanban',
     'route_middleware' => ['web', 'auth'],

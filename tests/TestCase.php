@@ -2,10 +2,13 @@
 
 namespace Thevps\Kanban\Tests;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Schema;
+use Inertia\ServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Spatie\EloquentSortable\EloquentSortableServiceProvider;
+use Spatie\MediaLibrary\MediaLibraryServiceProvider;
 use Thevps\Kanban\KanbanServiceProvider;
 
 abstract class TestCase extends Orchestra
@@ -13,9 +16,9 @@ abstract class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
-            \Spatie\EloquentSortable\EloquentSortableServiceProvider::class,
-            \Spatie\MediaLibrary\MediaLibraryServiceProvider::class,
-            \Inertia\ServiceProvider::class,
+            EloquentSortableServiceProvider::class,
+            MediaLibraryServiceProvider::class,
+            ServiceProvider::class,
             KanbanServiceProvider::class,
         ];
     }

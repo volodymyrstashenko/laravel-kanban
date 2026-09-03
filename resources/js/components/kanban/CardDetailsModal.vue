@@ -373,14 +373,38 @@ const PREVIEW_TEXT_LIMIT = 300_000; // chars — enough for any real note/log, k
 /** Formats the browser can render inline via a plain <img>/<iframe>/<video>/<audio> tag (or, for
  *  plain text, a fetched-and-rendered <pre>) — everything else (Office docs, archives, etc.) only
  *  gets a download link, there's no universal in-browser viewer for them. */
-function previewKind(mimeType: string): 'image' | 'pdf' | 'video' | 'audio' | 'text' | null {
+const OFFICE_MIME_TYPES = [
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+];
+
+function previewKind(mimeType: string): 'image' | 'pdf' | 'video' | 'audio' | 'text' | 'office' | null {
     if (!mimeType) return null;
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType === 'application/pdf') return 'pdf';
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
     if (mimeType.startsWith('text/')) return 'text';
+    if (OFFICE_MIME_TYPES.includes(mimeType)) return 'office';
     return null;
+}
+
+// Word/Excel/PowerPoint have no native in-browser viewer — routed through Google's document
+// viewer instead, which needs the attachment reachable at a plain public URL (true for the
+// default `public` media disk — no auth check) since Google's own servers fetch it. Trade-off
+// worth knowing: the file's content goes to Google to be rendered — fine for most attachments,
+// but a host storing sensitive documents this way should flag that to whoever configures it.
+//
+// The classic /viewer endpoint (not /viewerng, its Drive-oriented successor) is used
+// deliberately — viewerng failed to render a legacy binary .xls (application/vnd.ms-excel)
+// while handling .docx fine; the classic endpoint has a longer track record with legacy
+// binary Office formats (.doc/.xls/.ppt) alongside the modern OOXML ones.
+function officePreviewUrl(url: string): string {
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
 }
 
 // response.text() always decodes as UTF-8 regardless of the file's real encoding — a legacy
@@ -1234,6 +1258,11 @@ function formatDateTime(value: string) {
                             class="h-full w-full overflow-auto text-wrap rounded-lg bg-muted/50 p-4 text-left font-mono text-xs whitespace-pre-wrap text-foreground"
                             >{{ previewText }}</pre
                         >
+                        <iframe
+                            v-else-if="previewKind(previewingMedia.mime_type) === 'office'"
+                            :src="officePreviewUrl(previewingMedia.original_url)"
+                            class="h-full w-full rounded-lg border-0"
+                        />
                     </div>
                     <div class="flex justify-end">
                         <a

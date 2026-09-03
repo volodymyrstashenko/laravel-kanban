@@ -1217,7 +1217,7 @@ function formatDateTime(value: string) {
                 class="absolute inset-0 z-20 flex flex-col bg-black/80 p-4 sm:p-8"
                 @click.self="previewingMedia = null"
             >
-                <div class="mx-auto flex w-full max-w-4xl min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
+                <div class="mx-auto flex w-full max-w-7xl min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
                     <div class="flex items-center justify-between gap-4">
                         <p class="truncate text-sm font-semibold text-foreground">{{ previewingMedia.file_name }}</p>
                         <button

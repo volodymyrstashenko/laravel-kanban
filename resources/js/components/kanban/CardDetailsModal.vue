@@ -1202,7 +1202,7 @@ function formatDateTime(value: string) {
             class="fixed inset-0 z-[100] flex flex-col bg-black/80 p-4 sm:p-8"
             @click.self="previewingMedia = null"
         >
-            <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
+            <div class="mx-auto flex w-full max-w-4xl min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
                 <div class="flex items-center justify-between gap-4">
                     <p class="truncate text-sm font-semibold text-foreground">{{ previewingMedia.file_name }}</p>
                     <button
@@ -1213,7 +1213,7 @@ function formatDateTime(value: string) {
                         <X class="size-4" />
                     </button>
                 </div>
-                <div class="flex flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
+                <div class="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
                     <img
                         v-if="previewKind(previewingMedia.mime_type) === 'image'"
                         :src="previewingMedia.original_url"

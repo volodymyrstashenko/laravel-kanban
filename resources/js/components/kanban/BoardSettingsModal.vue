@@ -31,7 +31,7 @@ import { useInitials } from '@/composables/useInitials';
 import { KANBAN_COLORS } from '@/lib/kanbanColors';
 import type { KanbanBoard, KanbanUserRef } from '@/types';
 import { router, useForm } from '@inertiajs/vue3';
-import { Check, Loader2, MoreVertical, ShieldAlert, Trash2, Upload, UserPlus } from 'lucide-vue-next';
+import { Check, Loader2, MoreVertical, ShieldAlert, Trash2, Upload, UserPlus } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 interface Props {

@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { getContrastTextColor } from '@/lib/kanbanColors';
 import type { BreadcrumbItem, KanbanBoard, KanbanColumn, KanbanUserRef } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronDown, LayoutTemplate, Plus, Settings, User as UserIcon } from 'lucide-vue-next';
+import { ChevronDown, LayoutTemplate, Plus, Settings, User as UserIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

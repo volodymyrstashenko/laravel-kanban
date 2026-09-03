@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import type { KanbanBoard, KanbanCard, KanbanColumn as KanbanColumnType, KanbanUserRef } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
-import { Plus } from 'lucide-vue-next';
+import { Plus } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import CardDetailsModal from './CardDetailsModal.vue';

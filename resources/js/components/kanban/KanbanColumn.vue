@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { KanbanCard as KanbanCardType, KanbanColumn } from '@/types';
-import { GripVertical, MoreVertical, Plus, Trash2 } from 'lucide-vue-next';
+import { GripVertical, MoreVertical, Plus, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import draggable from 'vuedraggable';
 import KanbanCard from './KanbanCard.vue';

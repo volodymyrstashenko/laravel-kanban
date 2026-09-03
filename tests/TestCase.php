@@ -25,6 +25,9 @@ abstract class TestCase extends Orchestra
 
     protected function defineEnvironment($app): void
     {
+        // Generated fresh per test run — never a committed/static value (avoids ever having a
+        // real-looking APP_KEY string sitting in the repo, e.g. for secret scanners).
+        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
         $app['config']->set('kanban.user_model', TestUser::class);
         $app['config']->set('kanban.route_middleware', ['web']);

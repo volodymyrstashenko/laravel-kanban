@@ -39,7 +39,7 @@ import {
     Trash2,
     User,
     X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{

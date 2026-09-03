@@ -5,7 +5,8 @@
 журнал дій), підзавдання (в т.ч. кросбордові), ключі карток у стилі Jira (`ADM-0001`),
 drag-and-drop через `vuedraggable`, порядок через `spatie/eloquent-sortable`.
 
-Винесено з `app-strogaz.devvps.pp.ua`. App-специфіка відв'язана:
+Пакет не прив'язаний до конкретного застосунку — усе, що зазвичай різниться між проєктами,
+винесено в конфіг чи подію:
 
 | Що | Як |
 |---|---|
@@ -38,15 +39,13 @@ resources/js/types/kanban.ts
 
 Опубліковані компоненти імпортують з хост-застосунку — переконайтеся, що є або підмініть:
 
-- **UI-кіт** `@/components/ui/*` (shadcn-vue): `alert-dialog avatar badge button dialog
-  dropdown-menu input label select separator tabs textarea tooltip`. Для проєктів на **reka-ui**
-  (а не radix-vue) — імпорти самих примітивів усередині цих компонентів однакові, але переконайтеся,
-  що ваш `ui/*` теж на reka-ui.
+- **UI-кіт** `@/components/ui/*` (shadcn-vue на **reka-ui**): `alert-dialog avatar badge button
+  dialog dropdown-menu input label select separator tabs textarea tooltip`.
 - `@/layouts/AppLayout.vue` — макет сторінки (breadcrumbs slot). `pages/kanban/{Index,Show}.vue`.
 - `@/components/ConfirmDeleteDialog.vue` — контрольований діалог підтвердження (`open` + `@confirm`).
 - `@/composables/useInitials` — ініціали для аватарів.
 - Тости через Inertia flash (`success`/`error`) — контролер лише робить `->with('success', ...)`.
-- npm: `vuedraggable`, `lucide-vue-next`, `@inertiajs/vue3`.
+- npm: `vuedraggable`, `@lucide/vue`, `@inertiajs/vue3`.
 - Tailwind-токени: `--success`/`--success-foreground`, `--warning`/`--warning-foreground`,
   `--sidebar-border` (світла+темна тема).
 
@@ -64,7 +63,19 @@ Event::listen(CardAssigned::class, function (CardAssigned $e) {
 });
 ```
 
+## Тести
+
+```bash
+composer install
+vendor/bin/phpunit
+```
+
+Пакетний Testbench-сьют (`tests/KanbanFlowTest.php`) не залежить від жодного хост-застосунку —
+піднімає власного тестового користувача й БД у пам'яті.
+
 ## Розробка / локальний path-репозиторій
+
+Для розробки пакета всередині якогось проєкту, без публікації в реєстр:
 
 ```json
 "repositories": [

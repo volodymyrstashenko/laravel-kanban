@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useInitials } from '@/composables/useInitials';
 import { priorityBadgeVariant, priorityLabel } from '@/lib/priority';
 import type { KanbanCard } from '@/types';
-import { CheckSquare, Clock, CornerDownRight, ListTree, MessageSquare, Paperclip } from 'lucide-vue-next';
+import { CheckSquare, Clock, CornerDownRight, ListTree, MessageSquare, Paperclip } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = withDefaults(

@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { getContrastTextColor } from '@/lib/kanbanColors';
 import type { BreadcrumbItem, KanbanBoard, KanbanUserRef } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Clock, GripVertical, LayoutTemplate, Plus, Settings, Users } from 'lucide-vue-next';
+import { Clock, GripVertical, LayoutTemplate, Plus, Settings, Users } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 

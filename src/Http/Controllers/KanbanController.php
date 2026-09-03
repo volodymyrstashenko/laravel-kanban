@@ -20,14 +20,13 @@ use Thevps\Kanban\Models\KanbanColumn;
 use Thevps\Kanban\Models\KanbanComment;
 
 /**
- * Повноцінна багатодошкова канбан-дошка. Винесена з проєкту app-strogaz у пакет
- * thevps/laravel-kanban — уся app-специфіка відв'язана: модель користувача через
+ * Повноцінна багатодошкова канбан-дошка. Уся app-специфіка відв'язана: модель користувача через
  * config('kanban.user_model'), сповіщення через подію CardAssigned (хост слухає й вирішує
  * канал), сторінки Inertia через config('kanban.inertia_page_prefix').
  *
  * Уся inline-авторизація (authorizeBoardAction/authorizeCardAction/isBoardOwner + IDOR-гарди
- * abort_unless($card->column->kanban_board_id === $board->id)) перенесена verbatim — вона
- * перевірена бойовими тестами в оригінальному проєкті.
+ * abort_unless($card->column->kanban_board_id === $board->id)) покрита тестами пакета
+ * (tests/KanbanFlowTest.php).
  */
 class KanbanController extends Controller
 {

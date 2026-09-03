@@ -35,6 +35,7 @@ class KanbanCard extends Model implements HasMedia, Sortable
         'assigned_to_id',
         'order_column',
         'archived_at',
+        'document_task_id',
     ];
 
     protected function casts(): array

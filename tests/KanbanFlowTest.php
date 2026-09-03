@@ -90,6 +90,34 @@ class KanbanFlowTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_institution_resolver_scopes_boards_and_stamps_new_ones(): void
+    {
+        $user = TestUser::create(['name' => 'Owner']);
+        $this->actingAs($user);
+
+        // No resolver configured yet — behaves like every other test here (single-tenant, unscoped).
+        $this->post(route('kanban.store'), ['title' => 'Untenanted'])->assertRedirect();
+        $untenanted = KanbanBoard::firstOrFail();
+        $this->assertNull($untenanted->institution_id);
+
+        config(['kanban.institution_resolver' => fn () => 7]);
+
+        $this->post(route('kanban.store'), ['title' => 'Tenant 7'])->assertRedirect();
+        $tenant7Board = KanbanBoard::where('title', 'Tenant 7')->firstOrFail();
+        $this->assertSame(7, $tenant7Board->institution_id);
+
+        // The board created before the resolver was set now falls outside every scoped query —
+        // this is the single-tenant→multi-tenant migration reality (see the plan's Data migration
+        // step: existing rows need their institution_id backfilled by the host, not the package).
+        $this->assertSame([$tenant7Board->id], KanbanBoard::pluck('id')->all());
+
+        config(['kanban.institution_resolver' => fn () => 9]);
+        $this->assertSame([], KanbanBoard::pluck('id')->all());
+
+        config(['kanban.institution_resolver' => null]);
+        $this->assertCount(2, KanbanBoard::pluck('id')->all());
+    }
+
     public function test_card_assigned_event_fires_for_other_user_only(): void
     {
         Event::fake([CardAssigned::class]);

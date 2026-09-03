@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Thevps\Kanban\Kanban;
 
 return new class extends Migration
 {
@@ -19,7 +20,7 @@ return new class extends Migration
             // Заголовок цільової сторінки, витягнутий один раз при збереженні (best-effort).
             // null — не вдалось витягти; фронтенд тоді показує сам URL.
             $table->string('title')->nullable();
-            $table->foreignId('created_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('created_by_id')->nullable()->constrained(Kanban::usersTable())->nullOnDelete();
             $table->timestamps();
         });
     }

@@ -2,6 +2,7 @@
 
 namespace Thevps\Kanban\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,7 +26,25 @@ class KanbanBoard extends Model implements HasMedia, Sortable
         'code',
         'created_by_id',
         'sort_order',
+        'institution_id',
+        'group_id',
+        'member_sync',
+        'personal_type',
     ];
+
+    /**
+     * Institution-scopes every query whenever the host has configured
+     * `kanban.institution_resolver` — a no-op (no `where` added at all) for single-tenant hosts,
+     * so this never touches an install that never sets the resolver.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('institution', function (Builder $query) {
+            if ($institutionId = Kanban::currentInstitutionId()) {
+                $query->where('institution_id', $institutionId);
+            }
+        });
+    }
 
     // `card_sequence` свідомо НЕ у $fillable — його змінює лише nextCardNumber() нижче,
     // ніколи напряму з форми/запиту.
@@ -47,13 +66,14 @@ class KanbanBoard extends Model implements HasMedia, Sortable
     public const DEFAULT_COLUMNS = ['В черзі', 'В роботі', 'На перевірці', 'Завершено'];
 
     /**
-     * Масовий insert замість циклу `KanbanColumn::create()` — інакше Sortable-трейт робив би
-     * один max()-запит на кожну колонку, хоча порядок тут уже відомий наперед.
+     * Bulk-inserted rather than looping `KanbanColumn::create()` — that would fire the Sortable
+     * trait's `sort_when_creating` max() query once per column, though the order is already
+     * known upfront here. Public so a host can seed its own starter-column vocabulary (e.g. a
+     * status set for boards it auto-provisions for its own purposes) without duplicating this.
      */
-    public static function createDefaultColumns(self $board): void
+    public static function createColumnsFrom(self $board, array $titles): void
     {
         $now = now();
-        $titles = self::DEFAULT_COLUMNS;
 
         KanbanColumn::insert(array_values(array_map(
             fn ($index, $title) => [
@@ -67,6 +87,12 @@ class KanbanBoard extends Model implements HasMedia, Sortable
             array_keys($titles),
             $titles,
         )));
+    }
+
+    /** Stock starter columns used when a board is created with no other vocabulary in mind. */
+    public static function createDefaultColumns(self $board): void
+    {
+        self::createColumnsFrom($board, self::DEFAULT_COLUMNS);
     }
 
     public function registerMediaCollections(): void

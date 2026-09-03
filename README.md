@@ -11,9 +11,12 @@ drag-and-drop через `vuedraggable`, порядок через `spatie/eloqu
 | Що | Як |
 |---|---|
 | Модель користувача | `config('kanban.user_model')` |
+| Таблиця користувачів (для FK у міграціях) | `config('kanban.users_table')` (типово `users`) |
 | Сповіщення виконавцю | подія `Thevps\Kanban\Events\CardAssigned` — хост слухає й сам шле Telegram/пошту/нічого |
 | Сторінки Inertia | `config('kanban.inertia_page_prefix')` (типово `kanban/`) |
 | Маршрути | `config('kanban.route_prefix')` + `config('kanban.route_middleware')`, імена завжди `kanban.*` |
+| Мультитенантність | `config('kanban.institution_resolver')` — див. нижче |
+| Список доступних користувачів | `config('kanban.available_users_resolver')` — див. нижче |
 
 ## Встановлення
 
@@ -62,6 +65,39 @@ Event::listen(CardAssigned::class, function (CardAssigned $e) {
     $e->card->assignee?->notify(new CardAssignedNotification($e->card, $e->assignedBy));
 });
 ```
+
+## Мультитенантність (опційно)
+
+Пакет за замовчуванням однотенантний — `kanban_boards.institution_id` присутня в схемі завжди
+(на випадок майбутньої потреби), але нею ніхто не користується, доки хост не задасть резолвер:
+
+```php
+// config/kanban.php
+'institution_resolver' => fn () => request()->route('institution')?->id,
+```
+
+Тоді `KanbanBoard` автоматично фільтрує **кожен** запит (глобальний scope) по
+`institution_id`, а `storeBoard()` проставляє його для нових дошок. Щоб дошки взагалі жили під
+`{institution:slug}/kanban/...`, а не глобально на `/kanban/...`, `route_prefix` приймає
+route-параметри як звичайний рядок префікса:
+
+```php
+'route_prefix' => '{institution:slug}/kanban',
+'route_middleware' => ['web', 'auth', 'verified', /* хостовий middleware, що резолвить {institution} */],
+```
+
+Список `availableUsers` (пікери учасника/виконавця) за замовчуванням — усі користувачі
+`user_model`; якщо це неприйнятно для мультитенантного хоста (юзери кількох закладів в одній
+таблиці), підмінити:
+
+```php
+'available_users_resolver' => fn () => \App\Models\User::query()
+    ->whereHas('institutions', fn ($q) => $q->where('id', request()->route('institution')->id)),
+```
+
+Аналогічно — `group_id`/`member_sync` на `kanban_boards` і `document_task_id` на `kanban_cards`:
+порожні колонки без FK, які пакет ніколи сам не читає й не пише — місце для хоста зберігати
+власний зв'язок (дошка групи/команди, картка від зовнішньої задачі) без форку моделей.
 
 ## Тести
 

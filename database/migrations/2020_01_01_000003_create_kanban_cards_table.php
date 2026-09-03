@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Thevps\Kanban\Kanban;
 
 return new class extends Migration
 {
@@ -27,8 +28,8 @@ return new class extends Migration
             // Окремо від вільного color: фіксовані рівні важливості low | high | asap.
             $table->string('priority')->nullable();
             $table->date('due_date')->nullable();
-            $table->foreignId('created_by_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('assigned_to_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('created_by_id')->constrained(Kanban::usersTable())->cascadeOnDelete();
+            $table->foreignId('assigned_to_id')->nullable()->constrained(Kanban::usersTable())->nullOnDelete();
             $table->unsignedInteger('order_column')->default(0);
             $table->timestamp('archived_at')->nullable();
             $table->timestamps();

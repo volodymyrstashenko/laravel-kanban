@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Thevps\Kanban\Kanban;
 
 return new class extends Migration
 {
@@ -24,7 +25,7 @@ return new class extends Migration
             $table->unsignedInteger('card_sequence')->default(0);
             $table->text('description')->nullable();
             $table->string('color', 20)->nullable();
-            $table->foreignId('created_by_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_id')->constrained(Kanban::usersTable())->cascadeOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });

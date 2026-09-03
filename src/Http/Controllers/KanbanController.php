@@ -55,7 +55,7 @@ class KanbanController extends Controller
 
         return Inertia::render(Kanban::page('Index'), [
             'boards' => $boards,
-            'availableUsers' => Kanban::userQuery()->orderBy('name')->get(['id', 'name', 'email']),
+            'availableUsers' => Kanban::availableUsersQuery()->orderBy('name')->get(['id', 'name', 'email']),
         ]);
     }
 
@@ -82,6 +82,7 @@ class KanbanController extends Controller
             $board = KanbanBoard::create([
                 ...$validated,
                 'created_by_id' => $request->user()->id,
+                'institution_id' => Kanban::currentInstitutionId(),
             ]);
 
             KanbanBoardMember::create([
@@ -193,7 +194,7 @@ class KanbanController extends Controller
             'columns' => $columns,
             'isOwner' => $isOwner,
             'members' => $board->members()->with('user:id,name,email')->get(),
-            'availableUsers' => Kanban::userQuery()->orderBy('name')->get(['id', 'name', 'email']),
+            'availableUsers' => Kanban::availableUsersQuery()->orderBy('name')->get(['id', 'name', 'email']),
             'availableBoards' => KanbanBoard::where(function ($query) use ($request) {
                 $query->where('created_by_id', $request->user()->id)
                     ->orWhereHas('members', fn ($q) => $q->where('user_id', $request->user()->id));

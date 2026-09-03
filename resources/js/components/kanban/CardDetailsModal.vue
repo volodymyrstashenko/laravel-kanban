@@ -366,17 +366,42 @@ const deletingMediaId = ref<number | null>(null);
 const deletingAttachment = ref(false);
 
 const previewingMedia = ref<KanbanMedia | null>(null);
+const previewText = ref<string | null>(null);
+const previewTextLoading = ref(false);
+const PREVIEW_TEXT_LIMIT = 300_000; // chars — enough for any real note/log, keeps a huge file from choking the tab
 
-/** Formats the browser can render inline via a plain <img>/<iframe>/<video>/<audio> tag — everything
- *  else (Office docs, archives, etc.) only gets a download link, there's no universal in-browser viewer for them. */
-function previewKind(mimeType: string): 'image' | 'pdf' | 'video' | 'audio' | null {
+/** Formats the browser can render inline via a plain <img>/<iframe>/<video>/<audio> tag (or, for
+ *  plain text, a fetched-and-rendered <pre>) — everything else (Office docs, archives, etc.) only
+ *  gets a download link, there's no universal in-browser viewer for them. */
+function previewKind(mimeType: string): 'image' | 'pdf' | 'video' | 'audio' | 'text' | null {
     if (!mimeType) return null;
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType === 'application/pdf') return 'pdf';
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
+    if (mimeType.startsWith('text/')) return 'text';
     return null;
 }
+
+// Text files are fetched and rendered into a <pre> ourselves rather than pointed at with an
+// <iframe src> — Spatie MediaLibrary commonly serves attachments with Content-Disposition:
+// attachment, which would just trigger a download inside the iframe instead of showing anything.
+watch(previewingMedia, async (media) => {
+    previewText.value = null;
+    if (!media || previewKind(media.mime_type) !== 'text') return;
+
+    previewTextLoading.value = true;
+    try {
+        const response = await fetch(media.original_url);
+        const text = await response.text();
+        previewText.value =
+            text.length > PREVIEW_TEXT_LIMIT ? text.slice(0, PREVIEW_TEXT_LIMIT) + '\n\n… файл обрізано, завантажте повністю.' : text;
+    } catch {
+        previewText.value = 'Не вдалося завантажити вміст файлу.';
+    } finally {
+        previewTextLoading.value = false;
+    }
+});
 
 function confirmDeleteAttachment() {
     if (!props.card || !deletingMediaId.value) return;
@@ -1166,6 +1191,12 @@ function formatDateTime(value: string) {
                     controls
                     class="w-full px-6"
                 />
+                <p v-else-if="previewTextLoading" class="text-sm text-muted-foreground">Завантаження…</p>
+                <pre
+                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'text'"
+                    class="h-full w-full overflow-auto text-wrap rounded-lg bg-muted/50 p-4 text-left font-mono text-xs whitespace-pre-wrap text-foreground"
+                    >{{ previewText }}</pre
+                >
             </div>
             <div class="flex justify-end">
                 <a

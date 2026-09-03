@@ -1178,6 +1178,75 @@ function formatDateTime(value: string) {
                     </div>
                 </div>
             </div>
+            </div>
+
+            <!--
+                Прев'ю НЕ окремий Dialog — вкладений другий Dialog з тим самим z-50, що й перший,
+                інколи опинявся ПІД ним (порядок порталів у <body> не гарантований) і конфліктував
+                по focus-trap/outside-click (reka-ui бачив клік у другому Dialog як клік "поза"
+                першим і закривав картку з-під прев'ю). Натомість це просто absolute-оверлей —
+                прямий нащадок ЦЬОГО Ж DialogContent (який сам position:fixed, тож служить
+                containing-block-ом), без жодного окремого шару чи порталу.
+            -->
+            <div
+                v-if="previewingMedia"
+                class="absolute inset-0 z-20 flex flex-col bg-black/80 p-4 sm:p-8"
+                @click.self="previewingMedia = null"
+            >
+                <div class="mx-auto flex w-full max-w-4xl min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
+                    <div class="flex items-center justify-between gap-4">
+                        <p class="truncate text-sm font-semibold text-foreground">{{ previewingMedia.file_name }}</p>
+                        <button
+                            type="button"
+                            class="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            @click="previewingMedia = null"
+                        >
+                            <X class="size-4" />
+                        </button>
+                    </div>
+                    <div class="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
+                        <img
+                            v-if="previewKind(previewingMedia.mime_type) === 'image'"
+                            :src="previewingMedia.original_url"
+                            :alt="previewingMedia.file_name"
+                            class="max-h-full max-w-full object-contain"
+                        />
+                        <iframe
+                            v-else-if="previewKind(previewingMedia.mime_type) === 'pdf'"
+                            :src="previewingMedia.original_url"
+                            class="h-full w-full rounded-lg border-0"
+                        />
+                        <video
+                            v-else-if="previewKind(previewingMedia.mime_type) === 'video'"
+                            :src="previewingMedia.original_url"
+                            controls
+                            class="max-h-full max-w-full"
+                        />
+                        <audio
+                            v-else-if="previewKind(previewingMedia.mime_type) === 'audio'"
+                            :src="previewingMedia.original_url"
+                            controls
+                            class="w-full px-6"
+                        />
+                        <p v-else-if="previewTextLoading" class="text-sm text-muted-foreground">Завантаження…</p>
+                        <pre
+                            v-else-if="previewKind(previewingMedia.mime_type) === 'text'"
+                            class="h-full w-full overflow-auto text-wrap rounded-lg bg-muted/50 p-4 text-left font-mono text-xs whitespace-pre-wrap text-foreground"
+                            >{{ previewText }}</pre
+                        >
+                    </div>
+                    <div class="flex justify-end">
+                        <a
+                            :href="previewingMedia.original_url"
+                            target="_blank"
+                            rel="noopener"
+                            class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                        >
+                            <Download class="size-4" /> Завантажити
+                        </a>
+                    </div>
+                </div>
+            </div>
         </DialogContent>
     </Dialog>
 
@@ -1189,81 +1258,6 @@ function formatDateTime(value: string) {
         @update:open="(open) => !open && (deletingMediaId = null)"
         @confirm="confirmDeleteAttachment"
     />
-
-    <!--
-        Плаваюча картка (CardDetailsModal) сама є Dialog — вкладений другий Dialog для прев'ю
-        мав однаковий фіксований z-50 з першим, тож інколи опинявся ПІД ним (порядок порталів
-        у <body> не гарантований) і конфліктував по focus-trap. Власний Teleport з явно вищим
-        z-index — простіше й надійніше, ніж узгоджувати два незалежні Dialog-екземпляри.
-
-        data-dialog-outside-ignore: цей overlay живе поза DOM-піддеревом самого DialogContent
-        картки, тож будь-який клік у ньому reka-ui бачить як клік "поза" діалогом і за
-        замовчуванням закриває його або перехоплює фокус. Якщо ваш ui/dialog побудований на
-        reka-ui (як newcrm), додайте в DialogContent такий самий обхід outside-click повз
-        елементи з цим атрибутом (newcrm: resources/js/Components/ui/dialog/DialogContent.vue).
-    -->
-    <Teleport to="body">
-        <div
-            v-if="previewingMedia"
-            data-dialog-outside-ignore
-            class="fixed inset-0 z-[100] flex flex-col bg-black/80 p-4 sm:p-8"
-            @click.self="previewingMedia = null"
-        >
-            <div class="mx-auto flex w-full max-w-4xl min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
-                <div class="flex items-center justify-between gap-4">
-                    <p class="truncate text-sm font-semibold text-foreground">{{ previewingMedia.file_name }}</p>
-                    <button
-                        type="button"
-                        class="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        @click="previewingMedia = null"
-                    >
-                        <X class="size-4" />
-                    </button>
-                </div>
-                <div class="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
-                    <img
-                        v-if="previewKind(previewingMedia.mime_type) === 'image'"
-                        :src="previewingMedia.original_url"
-                        :alt="previewingMedia.file_name"
-                        class="max-h-full max-w-full object-contain"
-                    />
-                    <iframe
-                        v-else-if="previewKind(previewingMedia.mime_type) === 'pdf'"
-                        :src="previewingMedia.original_url"
-                        class="h-full w-full rounded-lg border-0"
-                    />
-                    <video
-                        v-else-if="previewKind(previewingMedia.mime_type) === 'video'"
-                        :src="previewingMedia.original_url"
-                        controls
-                        class="max-h-full max-w-full"
-                    />
-                    <audio
-                        v-else-if="previewKind(previewingMedia.mime_type) === 'audio'"
-                        :src="previewingMedia.original_url"
-                        controls
-                        class="w-full px-6"
-                    />
-                    <p v-else-if="previewTextLoading" class="text-sm text-muted-foreground">Завантаження…</p>
-                    <pre
-                        v-else-if="previewKind(previewingMedia.mime_type) === 'text'"
-                        class="h-full w-full overflow-auto text-wrap rounded-lg bg-muted/50 p-4 text-left font-mono text-xs whitespace-pre-wrap text-foreground"
-                        >{{ previewText }}</pre
-                    >
-                </div>
-                <div class="flex justify-end">
-                    <a
-                        :href="previewingMedia.original_url"
-                        target="_blank"
-                        rel="noopener"
-                        class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                    >
-                        <Download class="size-4" /> Завантажити
-                    </a>
-                </div>
-            </div>
-        </div>
-    </Teleport>
 
     <ConfirmDeleteDialog
         :open="unlinkingSubtask !== null"

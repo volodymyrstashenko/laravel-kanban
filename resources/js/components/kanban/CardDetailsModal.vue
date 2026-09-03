@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useInitials } from '@/composables/useInitials';
 import { KANBAN_COLORS } from '@/lib/kanbanColors';
 import { PRIORITY_OPTIONS, priorityBadgeVariant, priorityLabel, type Priority } from '@/lib/priority';
-import type { KanbanBoard, KanbanCard, KanbanSubtaskRef, KanbanUserRef } from '@/types';
+import type { KanbanBoard, KanbanCard, KanbanMedia, KanbanSubtaskRef, KanbanUserRef } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     Calendar,
@@ -20,6 +20,7 @@ import {
     CheckCircle2,
     Clock,
     Download,
+    Eye,
     File,
     FileArchive,
     FileAudio,
@@ -364,6 +365,19 @@ function handleCardFileChange(e: Event) {
 const deletingMediaId = ref<number | null>(null);
 const deletingAttachment = ref(false);
 
+const previewingMedia = ref<KanbanMedia | null>(null);
+
+/** Formats the browser can render inline via a plain <img>/<iframe>/<video>/<audio> tag — everything
+ *  else (Office docs, archives, etc.) only gets a download link, there's no universal in-browser viewer for them. */
+function previewKind(mimeType: string): 'image' | 'pdf' | 'video' | 'audio' | null {
+    if (!mimeType) return null;
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType === 'application/pdf') return 'pdf';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    return null;
+}
+
 function confirmDeleteAttachment() {
     if (!props.card || !deletingMediaId.value) return;
     deletingAttachment.value = true;
@@ -485,20 +499,20 @@ function formatDateTime(value: string) {
                             <TabsList class="h-11 w-full justify-start gap-6 rounded-none bg-transparent p-0">
                                 <TabsTrigger
                                     value="details"
-                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                                 >
                                     <FileText class="size-4" /> Деталі
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="comments"
-                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                                 >
                                     <MessageSquare class="size-4" /> Коментарі
                                     <Badge v-if="card.comments_count" variant="outline" class="ml-1 h-5 px-1.5">{{ card.comments_count }}</Badge>
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="attachments"
-                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                                 >
                                     <Paperclip class="size-4" /> Файли та посилання
                                     <Badge
@@ -516,7 +530,7 @@ function formatDateTime(value: string) {
                                 <TabsTrigger
                                     v-if="!card.parent_id"
                                     value="subtasks"
-                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                                 >
                                     <ListTree class="size-4" /> Підзавдання
                                     <Badge v-if="card.subtasks_count" variant="outline" class="ml-1 h-5 px-1.5"
@@ -525,7 +539,7 @@ function formatDateTime(value: string) {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="history"
-                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                                    class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                                 >
                                     <History class="size-4" /> Історія
                                 </TabsTrigger>
@@ -838,6 +852,8 @@ function formatDateTime(value: string) {
                                             v-for="media in card.media"
                                             :key="media.id"
                                             class="group flex items-center gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border"
+                                            :class="previewKind(media.mime_type) ? 'cursor-pointer' : ''"
+                                            @click="previewKind(media.mime_type) && (previewingMedia = media)"
                                         >
                                             <div class="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                                                 <component :is="fileIcon(media.mime_type)" class="size-5" />
@@ -851,18 +867,27 @@ function formatDateTime(value: string) {
                                                 </p>
                                             </div>
                                             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                                                <button
+                                                    v-if="previewKind(media.mime_type)"
+                                                    type="button"
+                                                    class="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                                    @click.stop="previewingMedia = media"
+                                                >
+                                                    <Eye class="size-4" />
+                                                </button>
                                                 <a
                                                     :href="media.original_url"
                                                     target="_blank"
                                                     rel="noopener"
                                                     class="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary"
+                                                    @click.stop
                                                 >
                                                     <Download class="size-4" />
                                                 </a>
                                                 <button
                                                     type="button"
                                                     class="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-                                                    @click="deletingMediaId = media.id"
+                                                    @click.stop="deletingMediaId = media.id"
                                                 >
                                                     <Trash2 class="size-4" />
                                                 </button>
@@ -1113,6 +1138,47 @@ function formatDateTime(value: string) {
         @update:open="(open) => !open && (deletingMediaId = null)"
         @confirm="confirmDeleteAttachment"
     />
+
+    <Dialog :open="previewingMedia !== null" @update:open="(open) => !open && (previewingMedia = null)">
+        <DialogContent class="flex h-[85vh] w-[90vw] max-w-4xl flex-col gap-3 overflow-hidden">
+            <DialogTitle class="truncate pr-8">{{ previewingMedia?.file_name }}</DialogTitle>
+            <div class="flex flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
+                <img
+                    v-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'image'"
+                    :src="previewingMedia.original_url"
+                    :alt="previewingMedia.file_name"
+                    class="max-h-full max-w-full object-contain"
+                />
+                <iframe
+                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'pdf'"
+                    :src="previewingMedia.original_url"
+                    class="h-full w-full rounded-lg border-0"
+                />
+                <video
+                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'video'"
+                    :src="previewingMedia.original_url"
+                    controls
+                    class="max-h-full max-w-full"
+                />
+                <audio
+                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'audio'"
+                    :src="previewingMedia.original_url"
+                    controls
+                    class="w-full px-6"
+                />
+            </div>
+            <div class="flex justify-end">
+                <a
+                    :href="previewingMedia?.original_url"
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                >
+                    <Download class="size-4" /> Завантажити
+                </a>
+            </div>
+        </DialogContent>
+    </Dialog>
 
     <ConfirmDeleteDialog
         :open="unlinkingSubtask !== null"

@@ -383,6 +383,18 @@ function previewKind(mimeType: string): 'image' | 'pdf' | 'video' | 'audio' | 't
     return null;
 }
 
+// response.text() always decodes as UTF-8 regardless of the file's real encoding — a legacy
+// Cyrillic .txt (Windows-1251, common for old Ukrainian reports/exports) would come out as a wall
+// of replacement characters. Decode strictly as UTF-8 first; a real UTF-8 file always succeeds,
+// so any decode failure means it's some other encoding — windows-1251 covers the common case.
+function decodeAttachmentText(buffer: ArrayBuffer): string {
+    try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+    } catch {
+        return new TextDecoder('windows-1251').decode(buffer);
+    }
+}
+
 // Text files are fetched and rendered into a <pre> ourselves rather than pointed at with an
 // <iframe src> — Spatie MediaLibrary commonly serves attachments with Content-Disposition:
 // attachment, which would just trigger a download inside the iframe instead of showing anything.
@@ -393,7 +405,7 @@ watch(previewingMedia, async (media) => {
     previewTextLoading.value = true;
     try {
         const response = await fetch(media.original_url);
-        const text = await response.text();
+        const text = decodeAttachmentText(await response.arrayBuffer());
         previewText.value =
             text.length > PREVIEW_TEXT_LIMIT ? text.slice(0, PREVIEW_TEXT_LIMIT) + '\n\n… файл обрізано, завантажте повністю.' : text;
     } catch {

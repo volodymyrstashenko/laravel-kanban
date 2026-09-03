@@ -43,7 +43,7 @@ import {
     User,
     X,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     card: KanbanCard | null;
@@ -402,6 +402,20 @@ watch(previewingMedia, async (media) => {
         previewTextLoading.value = false;
     }
 });
+
+// Plain overlay (not a Dialog), so Escape needs its own listener — bound only while the preview
+// is open, on `window` rather than the overlay div, since nothing inside is necessarily focused.
+function handlePreviewEscape(e: KeyboardEvent) {
+    if (e.key === 'Escape') previewingMedia.value = null;
+}
+watch(previewingMedia, (media) => {
+    if (media) {
+        window.addEventListener('keydown', handlePreviewEscape);
+    } else {
+        window.removeEventListener('keydown', handlePreviewEscape);
+    }
+});
+onUnmounted(() => window.removeEventListener('keydown', handlePreviewEscape));
 
 function confirmDeleteAttachment() {
     if (!props.card || !deletingMediaId.value) return;
@@ -1164,52 +1178,73 @@ function formatDateTime(value: string) {
         @confirm="confirmDeleteAttachment"
     />
 
-    <Dialog :open="previewingMedia !== null" @update:open="(open) => !open && (previewingMedia = null)">
-        <DialogContent class="flex h-[85vh] w-[90vw] max-w-4xl flex-col gap-3 overflow-hidden">
-            <DialogTitle class="truncate pr-8">{{ previewingMedia?.file_name }}</DialogTitle>
-            <div class="flex flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
-                <img
-                    v-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'image'"
-                    :src="previewingMedia.original_url"
-                    :alt="previewingMedia.file_name"
-                    class="max-h-full max-w-full object-contain"
-                />
-                <iframe
-                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'pdf'"
-                    :src="previewingMedia.original_url"
-                    class="h-full w-full rounded-lg border-0"
-                />
-                <video
-                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'video'"
-                    :src="previewingMedia.original_url"
-                    controls
-                    class="max-h-full max-w-full"
-                />
-                <audio
-                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'audio'"
-                    :src="previewingMedia.original_url"
-                    controls
-                    class="w-full px-6"
-                />
-                <p v-else-if="previewTextLoading" class="text-sm text-muted-foreground">Завантаження…</p>
-                <pre
-                    v-else-if="previewingMedia && previewKind(previewingMedia.mime_type) === 'text'"
-                    class="h-full w-full overflow-auto text-wrap rounded-lg bg-muted/50 p-4 text-left font-mono text-xs whitespace-pre-wrap text-foreground"
-                    >{{ previewText }}</pre
-                >
+    <!--
+        Плаваюча картка (CardDetailsModal) сама є Dialog — вкладений другий Dialog для прев'ю
+        мав однаковий фіксований z-50 з першим, тож інколи опинявся ПІД ним (порядок порталів
+        у <body> не гарантований) і конфліктував по focus-trap. Власний Teleport з явно вищим
+        z-index — простіше й надійніше, ніж узгоджувати два незалежні Dialog-екземпляри.
+    -->
+    <Teleport to="body">
+        <div
+            v-if="previewingMedia"
+            class="fixed inset-0 z-[100] flex flex-col bg-black/80 p-4 sm:p-8"
+            @click.self="previewingMedia = null"
+        >
+            <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-3 overflow-hidden rounded-xl bg-background p-4 shadow-2xl">
+                <div class="flex items-center justify-between gap-4">
+                    <p class="truncate text-sm font-semibold text-foreground">{{ previewingMedia.file_name }}</p>
+                    <button
+                        type="button"
+                        class="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        @click="previewingMedia = null"
+                    >
+                        <X class="size-4" />
+                    </button>
+                </div>
+                <div class="flex flex-1 items-center justify-center overflow-auto rounded-lg bg-muted/30">
+                    <img
+                        v-if="previewKind(previewingMedia.mime_type) === 'image'"
+                        :src="previewingMedia.original_url"
+                        :alt="previewingMedia.file_name"
+                        class="max-h-full max-w-full object-contain"
+                    />
+                    <iframe
+                        v-else-if="previewKind(previewingMedia.mime_type) === 'pdf'"
+                        :src="previewingMedia.original_url"
+                        class="h-full w-full rounded-lg border-0"
+                    />
+                    <video
+                        v-else-if="previewKind(previewingMedia.mime_type) === 'video'"
+                        :src="previewingMedia.original_url"
+                        controls
+                        class="max-h-full max-w-full"
+                    />
+                    <audio
+                        v-else-if="previewKind(previewingMedia.mime_type) === 'audio'"
+                        :src="previewingMedia.original_url"
+                        controls
+                        class="w-full px-6"
+                    />
+                    <p v-else-if="previewTextLoading" class="text-sm text-muted-foreground">Завантаження…</p>
+                    <pre
+                        v-else-if="previewKind(previewingMedia.mime_type) === 'text'"
+                        class="h-full w-full overflow-auto text-wrap rounded-lg bg-muted/50 p-4 text-left font-mono text-xs whitespace-pre-wrap text-foreground"
+                        >{{ previewText }}</pre
+                    >
+                </div>
+                <div class="flex justify-end">
+                    <a
+                        :href="previewingMedia.original_url"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                    >
+                        <Download class="size-4" /> Завантажити
+                    </a>
+                </div>
             </div>
-            <div class="flex justify-end">
-                <a
-                    :href="previewingMedia?.original_url"
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                >
-                    <Download class="size-4" /> Завантажити
-                </a>
-            </div>
-        </DialogContent>
-    </Dialog>
+        </div>
+    </Teleport>
 
     <ConfirmDeleteDialog
         :open="unlinkingSubtask !== null"

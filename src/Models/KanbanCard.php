@@ -91,6 +91,12 @@ class KanbanCard extends Model implements HasMedia, Sortable
         return $this->hasMany(KanbanCardChecklist::class, 'card_id')->ordered();
     }
 
+    /** Прикріплені посилання (окремо від файлів-вкладень у медіаколекції 'attachments'). */
+    public function links(): HasMany
+    {
+        return $this->hasMany(KanbanCardLink::class, 'card_id')->latest();
+    }
+
     /** Батьківська картка, якщо ця картка — підзавдання. */
     public function parent(): BelongsTo
     {

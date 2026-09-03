@@ -4,10 +4,12 @@ namespace Thevps\Kanban\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Thevps\Kanban\Events\CardAssigned;
 use Thevps\Kanban\Models\KanbanBoard;
 use Thevps\Kanban\Models\KanbanCard;
 use Thevps\Kanban\Models\KanbanCardChecklist;
+use Thevps\Kanban\Models\KanbanCardLink;
 
 class KanbanFlowTest extends TestCase
 {
@@ -46,6 +48,46 @@ class KanbanFlowTest extends TestCase
 
         $this->post(route('kanban.cards.archive', [$board, $card]))->assertRedirect();
         $this->assertNotNull($card->refresh()->archived_at);
+    }
+
+    public function test_card_link_stores_fetched_page_title(): void
+    {
+        Http::fake([
+            '*' => Http::response('<html><head><title>  Example &amp; Domain  </title></head><body>x</body></html>', 200, ['Content-Type' => 'text/html']),
+        ]);
+
+        $this->actingAs(TestUser::create(['name' => 'Owner']));
+        $this->post(route('kanban.store'), ['title' => 'B']);
+        $board = KanbanBoard::firstOrFail();
+        $this->post(route('kanban.cards.store', $board), ['column_id' => $board->columns()->first()->id, 'title' => 'T']);
+        $card = KanbanCard::firstOrFail();
+
+        $this->post(route('kanban.cards.links.store', [$board, $card]), ['url' => 'https://example.com/page'])->assertRedirect();
+
+        $link = KanbanCardLink::firstOrFail();
+        $this->assertSame('https://example.com/page', $link->url);
+        $this->assertSame('Example & Domain', $link->title);
+        $this->assertDatabaseHas('kanban_activities', ['card_id' => $card->id, 'type' => 'link_added']);
+
+        $this->delete(route('kanban.cards.links.destroy', [$board, $card, $link]))->assertRedirect();
+        $this->assertDatabaseCount('kanban_card_links', 0);
+        $this->assertDatabaseHas('kanban_activities', ['card_id' => $card->id, 'type' => 'link_removed']);
+    }
+
+    public function test_card_link_to_private_host_is_stored_without_title_and_without_outbound_request(): void
+    {
+        Http::fake();
+
+        $this->actingAs(TestUser::create(['name' => 'Owner']));
+        $this->post(route('kanban.store'), ['title' => 'B']);
+        $board = KanbanBoard::firstOrFail();
+        $this->post(route('kanban.cards.store', $board), ['column_id' => $board->columns()->first()->id, 'title' => 'T']);
+        $card = KanbanCard::firstOrFail();
+
+        $this->post(route('kanban.cards.links.store', [$board, $card]), ['url' => 'http://127.0.0.1/admin'])->assertRedirect();
+
+        $this->assertNull(KanbanCardLink::firstOrFail()->title);
+        Http::assertNothingSent();
     }
 
     public function test_card_assigned_event_fires_for_other_user_only(): void

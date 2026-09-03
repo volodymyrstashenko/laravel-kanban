@@ -52,7 +52,7 @@ const iconStyle = computed(() => {
                         <LayoutTemplate class="size-4" />
                     </div>
                     <div class="cursor-pointer">
-                        <h1 class="flex items-center gap-1.5 text-base font-semibold leading-none text-foreground" :style="headerTitleStyle">
+                        <h1 class="flex items-center gap-1.5 text-base leading-none font-semibold text-foreground" :style="headerTitleStyle">
                             {{ board.title }}
                             <ChevronDown
                                 class="size-4 text-muted-foreground"
@@ -63,7 +63,7 @@ const iconStyle = computed(() => {
 
                     <div
                         v-if="availableBoards.length > 1"
-                        class="invisible absolute left-0 top-9 z-30 w-64 rounded-lg border border-sidebar-border/70 bg-card p-1.5 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 dark:border-sidebar-border"
+                        class="invisible absolute top-9 left-0 z-30 w-64 rounded-lg border border-sidebar-border/70 bg-card p-1.5 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 dark:border-sidebar-border"
                     >
                         <Link
                             v-for="b in availableBoards"

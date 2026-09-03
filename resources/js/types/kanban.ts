@@ -19,6 +19,14 @@ export interface KanbanChecklistItem {
     is_completed: boolean;
 }
 
+export interface KanbanCardLink {
+    id: number;
+    url: string;
+    /** Заголовок цільової сторінки (витягнутий сервером при збереженні). null → показуємо URL. */
+    title: string | null;
+    created_at: string;
+}
+
 export interface KanbanComment {
     id: number;
     content: string;
@@ -76,6 +84,7 @@ export interface KanbanCard {
     creator: KanbanUserRef | null;
     assignee: KanbanUserRef | null;
     media: KanbanMedia[];
+    links: KanbanCardLink[];
     comments: KanbanComment[];
     comments_count?: number;
     activities: KanbanActivity[];

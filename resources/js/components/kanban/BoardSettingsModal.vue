@@ -243,7 +243,7 @@ const otherMembers = computed(() => props.members.filter((m) => m.user_id !== pr
                     <TabsContent value="members" class="space-y-6 outline-none">
                         <div class="flex items-end gap-3 rounded-lg border border-sidebar-border/70 p-3 dark:border-sidebar-border">
                             <div class="flex-1 space-y-1.5">
-                                <Label class="text-[11px] uppercase text-muted-foreground">Додати учасника</Label>
+                                <Label class="text-[11px] text-muted-foreground uppercase">Додати учасника</Label>
                                 <Select v-model="memberForm.user_id">
                                     <SelectTrigger><SelectValue placeholder="Оберіть користувача" /></SelectTrigger>
                                     <SelectContent>
@@ -252,7 +252,7 @@ const otherMembers = computed(() => props.members.filter((m) => m.user_id !== pr
                                 </Select>
                             </div>
                             <div class="w-32 space-y-1.5">
-                                <Label class="text-[11px] uppercase text-muted-foreground">Роль</Label>
+                                <Label class="text-[11px] text-muted-foreground uppercase">Роль</Label>
                                 <Select v-model="memberForm.role">
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
@@ -276,7 +276,7 @@ const otherMembers = computed(() => props.members.filter((m) => m.user_id !== pr
                                     >
                                     <div>
                                         <p class="text-sm font-semibold text-foreground">{{ board.creator?.name }}</p>
-                                        <p class="text-[10px] uppercase tracking-wide text-muted-foreground">Власник (створив дошку)</p>
+                                        <p class="text-[10px] tracking-wide text-muted-foreground uppercase">Власник (створив дошку)</p>
                                     </div>
                                 </div>
                                 <Badge class="gap-1"><ShieldAlert class="size-3" /> Власник</Badge>

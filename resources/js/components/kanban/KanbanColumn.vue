@@ -54,7 +54,7 @@ function isNestedHere(card: KanbanCardType): boolean {
         <div class="group/head flex items-center justify-between gap-1 p-2.5 pb-2">
             <div class="flex min-w-0 flex-1 items-center gap-1.5">
                 <GripVertical
-                    class="column-handle size-4 shrink-0 cursor-grab text-muted-foreground/40 opacity-0 transition-opacity active:cursor-grabbing group-hover/head:opacity-100"
+                    class="column-handle size-4 shrink-0 cursor-grab text-muted-foreground/40 opacity-0 transition-opacity group-hover/head:opacity-100 active:cursor-grabbing"
                 />
                 <input
                     v-if="isEditing"
@@ -91,7 +91,7 @@ function isNestedHere(card: KanbanCardType): boolean {
                     <div v-if="menuOpen" class="fixed inset-0 z-10" @click="menuOpen = false" />
                     <div
                         v-if="menuOpen"
-                        class="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-sidebar-border/70 bg-card py-1 shadow-lg dark:border-sidebar-border"
+                        class="absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border border-sidebar-border/70 bg-card py-1 shadow-lg dark:border-sidebar-border"
                     >
                         <button
                             type="button"

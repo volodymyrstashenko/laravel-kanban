@@ -16,8 +16,10 @@ use Thevps\Kanban\Models\KanbanBoard;
 use Thevps\Kanban\Models\KanbanBoardMember;
 use Thevps\Kanban\Models\KanbanCard;
 use Thevps\Kanban\Models\KanbanCardChecklist;
+use Thevps\Kanban\Models\KanbanCardLink;
 use Thevps\Kanban\Models\KanbanColumn;
 use Thevps\Kanban\Models\KanbanComment;
+use Thevps\Kanban\Support\LinkTitleFetcher;
 
 /**
  * Повноцінна багатодошкова канбан-дошка. Уся app-специфіка відв'язана: модель користувача через
@@ -123,6 +125,7 @@ class KanbanController extends Controller
                 // навмисно вантажаться без ліміту.
                 'activities' => fn ($q) => $q->latest()->take(50)->with('user:id,name'),
                 'checklists',
+                'links',
                 // Підзавдання можуть бути прилінковані з ІНШОЇ дошки (кросс-бордовий лінк,
                 // linkSubtask()) — тож ключ і батька, і підзавдання рахується по ЙОГО ВЛАСНІЙ
                 // дошці (column.board), а не по $board, яку зараз переглядають.
@@ -715,6 +718,38 @@ class KanbanController extends Controller
         $this->logActivity($card, $request, 'detached', "видалив файл: {$name}");
 
         return back()->with('success', 'Файл видалено.');
+    }
+
+    public function storeLink(Request $request, KanbanBoard $board, KanbanCard $card): RedirectResponse
+    {
+        $this->authorizeCardAction($request, $board, $card, 'edit');
+        $validated = $request->validate([
+            'url' => ['required', 'string', 'max:2048', 'url', 'starts_with:http://,https://'],
+        ]);
+
+        // Синхронно, best-effort: заголовок цільової сторінки. null → фронтенд покаже сам URL.
+        $title = LinkTitleFetcher::fetch($validated['url']);
+
+        $card->links()->create([
+            'url' => $validated['url'],
+            'title' => $title,
+            'created_by_id' => $request->user()->id,
+        ]);
+        $this->logActivity($card, $request, 'link_added', 'додав посилання: '.($title ?: $validated['url']));
+
+        return back()->with('success', 'Посилання додано.');
+    }
+
+    public function destroyLink(Request $request, KanbanBoard $board, KanbanCard $card, KanbanCardLink $link): RedirectResponse
+    {
+        $this->authorizeCardAction($request, $board, $card, 'edit');
+        abort_unless($link->card_id === $card->id, 404);
+
+        $label = $link->title ?: $link->url;
+        $link->delete();
+        $this->logActivity($card, $request, 'link_removed', "видалив посилання: {$label}");
+
+        return back()->with('success', 'Посилання видалено.');
     }
 
     private function logActivity(KanbanCard $card, Request $request, string $type, string $description): void

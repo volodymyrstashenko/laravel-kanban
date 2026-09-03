@@ -28,7 +28,9 @@ import {
     FileSpreadsheet,
     FileText,
     FileVideo,
+    ExternalLink,
     History,
+    Link2,
     ListTree,
     MessageSquare,
     Paperclip,
@@ -224,7 +226,7 @@ const isOverdue = computed(() => {
     return new Date(props.card.due_date) < new Date(new Date().toDateString());
 });
 
-const currentUser = computed(() => (page.props.auth as { user: { id: number } }).user);
+const currentUser = computed(() => (page.props.auth as { user: { id: number; name: string } }).user);
 const isAssignee = computed(() => props.card?.assigned_to_id === currentUser.value.id);
 const canArchive = computed(() => props.isOwner || isAssignee.value);
 
@@ -374,6 +376,30 @@ function confirmDeleteAttachment() {
     });
 }
 
+// Посилання — окремо від файлів: сервер при збереженні тягне <title> цільової сторінки й
+// показує його замість «голого» URL (KanbanController::storeLink()).
+const newLinkUrl = ref('');
+const isAddingLink = ref(false);
+
+function addLink() {
+    if (!props.card || !newLinkUrl.value.trim()) return;
+    isAddingLink.value = true;
+    router.post(
+        route('kanban.cards.links.store', [props.board.id, props.card.id]),
+        { url: newLinkUrl.value.trim() },
+        {
+            preserveScroll: true,
+            onSuccess: () => (newLinkUrl.value = ''),
+            onFinish: () => (isAddingLink.value = false),
+        },
+    );
+}
+
+function deleteLink(id: number) {
+    if (!props.card) return;
+    router.delete(route('kanban.cards.links.destroy', [props.board.id, props.card.id, id]), { preserveScroll: true });
+}
+
 function fileIcon(mimeType: string) {
     if (!mimeType) return File;
     if (mimeType.startsWith('image/')) return FileImage;
@@ -397,7 +423,7 @@ function formatDateTime(value: string) {
             <DialogTitle class="sr-only">{{ card.title }}</DialogTitle>
             <DialogDescription class="sr-only">Деталі та налаштування картки завдання</DialogDescription>
 
-            <div class="flex shrink-0 items-start justify-between gap-6 border-b border-sidebar-border/70 py-4 pl-6 pr-14 dark:border-sidebar-border">
+            <div class="flex shrink-0 items-start justify-between gap-6 border-b border-sidebar-border/70 py-4 pr-14 pl-6 dark:border-sidebar-border">
                 <div class="min-w-0 flex-1">
                     <div class="mb-2 flex items-center gap-2">
                         <span class="font-mono text-xs font-medium text-muted-foreground">{{ card.display_key ?? `#${card.id}` }}</span>
@@ -431,7 +457,7 @@ function formatDateTime(value: string) {
                         <span class="italic">(архівовано{{ card.parent_board_title ? `, дошка «${card.parent_board_title}»` : '' }})</span>
                     </p>
                     <div v-if="!isEditing">
-                        <h2 class="text-xl font-semibold leading-tight text-foreground">{{ card.title }}</h2>
+                        <h2 class="text-xl leading-tight font-semibold text-foreground">{{ card.title }}</h2>
                     </div>
                     <Input v-else v-model="form.title" class="h-9 text-lg font-semibold" />
                 </div>
@@ -474,8 +500,13 @@ function formatDateTime(value: string) {
                                     value="attachments"
                                     class="h-full gap-1.5 rounded-none border-b-2 border-transparent px-0 text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                                 >
-                                    <Paperclip class="size-4" /> Файли
-                                    <Badge v-if="card.media?.length" variant="outline" class="ml-1 h-5 px-1.5">{{ card.media.length }}</Badge>
+                                    <Paperclip class="size-4" /> Файли та посилання
+                                    <Badge
+                                        v-if="(card.media?.length ?? 0) + (card.links?.length ?? 0)"
+                                        variant="outline"
+                                        class="ml-1 h-5 px-1.5"
+                                        >{{ (card.media?.length ?? 0) + (card.links?.length ?? 0) }}</Badge
+                                    >
                                 </TabsTrigger>
                                 <!--
                                     Тільки для картки-БАТЬКА — свідомо один рівень вкладеності (модель/БД глибину не
@@ -504,14 +535,14 @@ function formatDateTime(value: string) {
                         <div class="flex-1 overflow-y-auto px-6 py-6">
                             <TabsContent value="details" class="m-0 space-y-8 outline-none">
                                 <div class="space-y-3">
-                                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <div class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                         <FileText class="size-3.5 text-primary" /> Опис
                                     </div>
                                     <div v-if="!isEditing">
-                                        <p v-if="card.description" class="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                                        <p v-if="card.description" class="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                                             {{ card.description }}
                                         </p>
-                                        <p v-else class="text-sm italic text-muted-foreground">Опису ще немає.</p>
+                                        <p v-else class="text-sm text-muted-foreground italic">Опису ще немає.</p>
                                     </div>
                                     <Textarea v-else v-model="form.description" class="min-h-[160px]" placeholder="Опишіть деталі завдання…" />
                                 </div>
@@ -520,7 +551,7 @@ function formatDateTime(value: string) {
 
                                 <div class="space-y-3">
                                     <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        <div class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                             <Square class="size-3.5 text-primary" /> Чек-лист
                                         </div>
                                         <span
@@ -579,14 +610,14 @@ function formatDateTime(value: string) {
                                                 </span>
                                                 <button
                                                     type="button"
-                                                    class="p-1 text-muted-foreground opacity-0 hover:text-primary group-hover:opacity-100"
+                                                    class="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-primary"
                                                     @click="startEditChecklistItem(item)"
                                                 >
                                                     <Pencil class="size-3.5" />
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="p-1 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                                                    class="p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
                                                     @click="deleteChecklistItem(item)"
                                                 >
                                                     <Trash2 class="size-3.5" />
@@ -611,7 +642,7 @@ function formatDateTime(value: string) {
 
                             <TabsContent v-if="!card.parent_id" value="subtasks" class="m-0 space-y-3 outline-none">
                                 <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <div class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                         <ListTree class="size-3.5 text-primary" /> Підзавдання
                                     </div>
                                     <span
@@ -677,7 +708,7 @@ function formatDateTime(value: string) {
 
                                         <button
                                             type="button"
-                                            class="shrink-0 p-1 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                                            class="shrink-0 p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
                                             title="Відв'язати підзавдання"
                                             @click.stop.prevent="unlinkSubtask(subtask)"
                                         >
@@ -685,7 +716,7 @@ function formatDateTime(value: string) {
                                         </button>
                                     </component>
 
-                                    <p v-if="!card.subtasks?.length" class="text-sm italic text-muted-foreground">Підзавдань ще немає.</p>
+                                    <p v-if="!card.subtasks?.length" class="text-sm text-muted-foreground italic">Підзавдань ще немає.</p>
 
                                     <div class="mt-2 flex gap-2">
                                         <Input v-model="newSubtaskTitle" placeholder="Назва нового підзавдання…" @keyup.enter="addSubtask" />
@@ -732,7 +763,7 @@ function formatDateTime(value: string) {
                                                     candidate.column_title
                                                 }}</span>
                                             </button>
-                                            <p v-if="!isSearchingLink && !linkResults.length" class="p-2 text-sm italic text-muted-foreground">
+                                            <p v-if="!isSearchingLink && !linkResults.length" class="p-2 text-sm text-muted-foreground italic">
                                                 Нічого не знайдено — картка без власного підзавдання/батька і до якої у вас є доступ.
                                             </p>
                                         </div>
@@ -741,10 +772,62 @@ function formatDateTime(value: string) {
                             </TabsContent>
 
                             <TabsContent value="attachments" class="m-0 outline-none">
-                                <div class="space-y-6">
+                                <div class="space-y-8">
+                                    <div class="space-y-3">
+                                        <div class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                            <Link2 class="size-3.5 text-primary" /> Посилання
+                                        </div>
+
+                                        <div class="flex gap-2">
+                                            <Input
+                                                v-model="newLinkUrl"
+                                                type="url"
+                                                placeholder="https://…"
+                                                class="h-9"
+                                                @keyup.enter="addLink"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                class="shrink-0 gap-1.5"
+                                                :disabled="!newLinkUrl.trim() || isAddingLink"
+                                                @click="addLink"
+                                            >
+                                                <Plus class="size-3.5" /> Додати
+                                            </Button>
+                                        </div>
+
+                                        <div v-if="card.links?.length" class="space-y-1.5">
+                                            <div
+                                                v-for="link in card.links"
+                                                :key="link.id"
+                                                class="group flex items-center gap-2.5 rounded-lg border border-sidebar-border/70 p-2.5 dark:border-sidebar-border"
+                                            >
+                                                <ExternalLink class="size-4 shrink-0 text-muted-foreground" />
+                                                <a
+                                                    :href="link.url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="min-w-0 flex-1 truncate text-sm text-foreground hover:text-primary hover:underline"
+                                                    :title="link.url"
+                                                >
+                                                    {{ link.title || link.url }}
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    class="shrink-0 p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
+                                                    @click="deleteLink(link.id)"
+                                                >
+                                                    <Trash2 class="size-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p v-else class="text-sm text-muted-foreground italic">Посилань ще немає.</p>
+                                    </div>
+
                                     <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                            <Paperclip class="size-3.5 text-primary" /> Вкладення
+                                        <div class="flex items-center gap-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                            <Paperclip class="size-3.5 text-primary" /> Файли
                                         </div>
                                         <input ref="cardFileInput" type="file" multiple class="hidden" @change="handleCardFileChange" />
                                         <Button size="sm" class="gap-1.5" @click="triggerCardFileInput"><Plus class="size-3.5" /> Додати файл</Button>
@@ -828,7 +911,7 @@ function formatDateTime(value: string) {
                                                 <span class="text-[11px] text-muted-foreground">{{ formatDateTime(comment.created_at) }}</span>
                                             </div>
                                             <div
-                                                class="whitespace-pre-wrap rounded-xl border border-sidebar-border/70 bg-muted/30 p-3 text-sm text-foreground dark:border-sidebar-border"
+                                                class="rounded-xl border border-sidebar-border/70 bg-muted/30 p-3 text-sm whitespace-pre-wrap text-foreground dark:border-sidebar-border"
                                             >
                                                 {{ comment.content }}
                                             </div>
@@ -845,7 +928,7 @@ function formatDateTime(value: string) {
                                 <div class="relative space-y-6 border-l border-sidebar-border/70 py-2 pl-8 dark:border-sidebar-border">
                                     <div v-for="activity in card.activities" :key="activity.id" class="relative">
                                         <div
-                                            class="absolute -left-[41px] top-0 flex size-6 items-center justify-center rounded-full border border-sidebar-border/70 bg-card dark:border-sidebar-border"
+                                            class="absolute top-0 -left-[41px] flex size-6 items-center justify-center rounded-full border border-sidebar-border/70 bg-card dark:border-sidebar-border"
                                         >
                                             <Avatar size="sm" class="size-6"
                                                 ><AvatarFallback class="bg-muted text-[9px] text-muted-foreground">{{
@@ -859,7 +942,7 @@ function formatDateTime(value: string) {
                                         </p>
                                         <p class="mt-0.5 font-mono text-[11px] text-muted-foreground">{{ formatDateTime(activity.created_at) }}</p>
                                     </div>
-                                    <p v-if="!card.activities?.length" class="text-sm italic text-muted-foreground">Історія змін відсутня.</p>
+                                    <p v-if="!card.activities?.length" class="text-sm text-muted-foreground italic">Історія змін відсутня.</p>
                                 </div>
                             </TabsContent>
                         </div>
@@ -868,7 +951,7 @@ function formatDateTime(value: string) {
 
                 <div class="flex w-72 shrink-0 flex-col gap-6 overflow-y-auto bg-muted/10 p-5">
                     <div class="space-y-3">
-                        <label class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <label class="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                             <User class="size-3.5" /> Виконавець
                         </label>
                         <div v-if="!isEditing" class="flex flex-col gap-2">
@@ -901,7 +984,7 @@ function formatDateTime(value: string) {
                     <Separator />
 
                     <div class="space-y-3">
-                        <label class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <label class="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                             <Clock class="size-3.5" /> Дедлайн
                         </label>
                         <div class="flex items-center gap-2.5 rounded-lg border border-sidebar-border/70 p-2.5 dark:border-sidebar-border">
@@ -941,7 +1024,7 @@ function formatDateTime(value: string) {
                     <Separator />
 
                     <div class="space-y-3">
-                        <label class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Важливість</label>
+                        <label class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Важливість</label>
                         <div class="flex flex-wrap gap-1.5">
                             <button
                                 v-for="option in PRIORITY_OPTIONS"
@@ -972,7 +1055,7 @@ function formatDateTime(value: string) {
                     <Separator />
 
                     <div class="space-y-3">
-                        <label class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Колір картки</label>
+                        <label class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Колір картки</label>
                         <div class="flex flex-wrap gap-1.5">
                             <button
                                 v-for="color in KANBAN_COLORS"
@@ -1000,7 +1083,7 @@ function formatDateTime(value: string) {
 
                     <div class="space-y-3">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Створив</label>
+                            <label class="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">Створив</label>
                             <div class="flex items-center gap-2 text-xs font-medium text-foreground">
                                 <Avatar size="sm" class="size-5"
                                     ><AvatarFallback class="bg-muted text-[9px] text-muted-foreground">{{
@@ -1011,7 +1094,7 @@ function formatDateTime(value: string) {
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Створено</label>
+                            <label class="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">Створено</label>
                             <div class="rounded bg-muted/50 px-2 py-1 font-mono text-[11px] text-foreground">
                                 {{ formatDateTime(card.created_at) }}
                             </div>

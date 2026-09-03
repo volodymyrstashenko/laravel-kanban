@@ -36,7 +36,7 @@ const checklistDone = computed(() => props.card.checklists.filter((item) => item
 
 <template>
     <div
-        class="group relative mb-2 cursor-grab select-none overflow-hidden rounded-lg border border-sidebar-border/70 bg-card py-2.5 pl-4 pr-3 shadow-sm transition-all hover:border-primary/60 hover:shadow-md active:cursor-grabbing dark:border-white/10 dark:bg-secondary dark:hover:border-primary/60"
+        class="group relative mb-2 cursor-grab overflow-hidden rounded-lg border border-sidebar-border/70 bg-card py-2.5 pr-3 pl-4 shadow-sm transition-all select-none hover:border-primary/60 hover:shadow-md active:cursor-grabbing dark:border-white/10 dark:bg-secondary dark:hover:border-primary/60"
         :class="indent ? 'ml-5' : ''"
         @click="$emit('click', card)"
     >
@@ -74,7 +74,7 @@ const checklistDone = computed(() => props.card.checklists.filter((item) => item
             </div>
         </div>
 
-        <h4 class="mb-2 line-clamp-2 text-sm font-semibold leading-snug text-foreground">{{ card.title }}</h4>
+        <h4 class="mb-2 line-clamp-2 text-sm leading-snug font-semibold text-foreground">{{ card.title }}</h4>
 
         <div class="flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground empty:hidden">
             <Badge v-if="card.priority" :variant="priorityBadgeVariant(card.priority)" class="h-5 px-2 text-[11px] font-semibold">

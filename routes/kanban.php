@@ -55,4 +55,7 @@ Route::prefix('{board}')->group(function () {
 
     Route::post('/cards/{card}/attachments', [KanbanController::class, 'storeAttachment'])->name('cards.attachments.store');
     Route::delete('/cards/{card}/attachments/{mediaId}', [KanbanController::class, 'destroyAttachment'])->name('cards.attachments.destroy');
+
+    Route::post('/cards/{card}/links', [KanbanController::class, 'storeLink'])->name('cards.links.store');
+    Route::delete('/cards/{card}/links/{link}', [KanbanController::class, 'destroyLink'])->name('cards.links.destroy');
 });

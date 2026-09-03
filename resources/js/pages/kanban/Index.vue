@@ -81,13 +81,13 @@ function openSettings(board: KanbanBoard) {
                         class="group relative flex flex-col overflow-hidden rounded-xl border border-sidebar-border/70 bg-card transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-sidebar-border"
                     >
                         <div
-                            class="drag-handle absolute right-2 top-2 z-10 cursor-grab rounded-md p-1 text-muted-foreground opacity-0 hover:bg-muted/50 hover:text-foreground active:cursor-grabbing group-hover:opacity-100"
+                            class="drag-handle absolute top-2 right-2 z-10 cursor-grab rounded-md p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted/50 hover:text-foreground active:cursor-grabbing"
                         >
                             <GripVertical class="size-4" />
                         </div>
                         <button
                             type="button"
-                            class="absolute right-9 top-2 z-10 rounded-md p-1 text-muted-foreground opacity-0 hover:bg-muted/50 hover:text-foreground group-hover:opacity-100"
+                            class="absolute top-2 right-9 z-10 rounded-md p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted/50 hover:text-foreground"
                             title="Налаштування"
                             @click.stop.prevent="openSettings(board)"
                         >

@@ -1195,10 +1195,17 @@ function formatDateTime(value: string) {
         мав однаковий фіксований z-50 з першим, тож інколи опинявся ПІД ним (порядок порталів
         у <body> не гарантований) і конфліктував по focus-trap. Власний Teleport з явно вищим
         z-index — простіше й надійніше, ніж узгоджувати два незалежні Dialog-екземпляри.
+
+        data-dialog-outside-ignore: цей overlay живе поза DOM-піддеревом самого DialogContent
+        картки, тож будь-який клік у ньому reka-ui бачить як клік "поза" діалогом і за
+        замовчуванням закриває його або перехоплює фокус. Якщо ваш ui/dialog побудований на
+        reka-ui (як newcrm), додайте в DialogContent такий самий обхід outside-click повз
+        елементи з цим атрибутом (newcrm: resources/js/Components/ui/dialog/DialogContent.vue).
     -->
     <Teleport to="body">
         <div
             v-if="previewingMedia"
+            data-dialog-outside-ignore
             class="fixed inset-0 z-[100] flex flex-col bg-black/80 p-4 sm:p-8"
             @click.self="previewingMedia = null"
         >

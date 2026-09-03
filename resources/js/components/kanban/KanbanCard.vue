@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useInitials } from '@/composables/useInitials';
 import { priorityBadgeVariant, priorityLabel } from '@/lib/priority';
 import type { KanbanCard } from '@/types';
-import { CheckSquare, Clock, CornerDownRight, ListTree, MessageSquare, Paperclip } from '@lucide/vue';
+import { CheckSquare, Clock, CornerDownRight, Link2, ListTree, MessageSquare, Paperclip } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = withDefaults(
@@ -88,6 +88,14 @@ const checklistDone = computed(() => props.card.checklists.filter((item) => item
                 <MessageSquare class="size-3.5" />
                 {{ card.comments_count }}
             </span>
+            <span v-if="card.media?.length" class="flex items-center gap-1">
+                <Paperclip class="size-3.5" />
+                {{ card.media.length }}
+            </span>
+            <span v-if="card.links?.length" class="flex items-center gap-1">
+                <Link2 class="size-3.5" />
+                {{ card.links.length }}
+            </span>
             <Badge
                 v-if="card.checklists?.length"
                 variant="outline"
@@ -106,7 +114,6 @@ const checklistDone = computed(() => props.card.checklists.filter((item) => item
                 <ListTree class="size-3.5" />
                 {{ card.subtasks_done_count ?? 0 }}/{{ card.subtasks_count }}
             </Badge>
-            <Paperclip v-if="card.media?.length" class="size-3.5 shrink-0" />
         </div>
     </div>
 </template>

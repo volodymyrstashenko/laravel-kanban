@@ -1202,7 +1202,6 @@ function formatDateTime(value: string) {
                     </div>
                 </div>
             </div>
-            </div>
 
             <!--
                 Прев'ю НЕ окремий Dialog — вкладений другий Dialog з тим самим z-50, що й перший,
